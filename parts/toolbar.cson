@@ -1,0 +1,201 @@
+[
+# 設定を開く
+  {
+    type: "button"
+    icon: 'gear-a'
+    callback: 'settings-view:open'
+    tooltip: '設定を開く'
+    iconset: 'ion'
+  }
+# メニューを開く
+  {
+    type: "button"
+    icon: 'bars'
+    callback: 'our-ide:menu'
+    tooltip: 'メニューを開く'
+    iconset: 'fa'
+    style: {
+      color: "blue"
+      background: "white"
+      border: "2px solid blue"
+    }
+  }
+# 実行
+  {
+    type: "button"
+    icon: 'rocket'
+    callback: 'our-ide:file'
+    tooltip: '実行'
+    style: {
+      color: "red"
+      background: "white"
+      border: "2px solid blue"
+    }
+  }
+# GIT
+  {
+    type: "button"
+    icon: "git"
+    iconset: "fa"
+    callback: "git-control:toggle"
+    tooltip: "GIT:パネル切り替え"
+    style: {
+      color: "blue"
+      background: "white"
+      border: "2px solid blue"
+    }
+  }
+# プロジェクトを開く
+  {
+    type: "button"
+    icon: "repo"
+    callback: "project-manager:list-projects"
+    tooltip: "プロジェクトを開く(Alt-Shift-P)"
+    iconset: ""
+    style: {
+      color: "blue"
+      background: "white"
+      border: "2px solid blue"
+    }
+  }
+# ログ表示
+  {
+    type: "button"
+    icon: "versions"
+    callback: "git-log:show"
+    tooltip: "GIT:ログ表示"
+    mode: "atom-text-editor"
+  }
+#
+  {
+    type: "button"
+    icon: "gist"
+    callback: "git-history:toggle"
+    tooltip: "GIT:履歴表示"
+    mode: "atom-text-editor"
+  }
+#
+  {
+    type: "button"
+    icon: "alert"
+    callback: "split-diff:enable"
+    tooltip: "GIT:差分表示"
+  }
+# 区切り線
+  {
+    type: "spacer"
+  }
+# サイドバー開閉
+  {
+    type: "button"
+    icon: "outdent"
+    callback: "tree-view:toggle"
+    tooltip: "サイドバー開閉"
+    iconset: "fa"
+    style: {
+      color: "blue"
+      background: "white"
+      border: "2px solid blue"
+    }
+　　}
+# パネル分離
+  {
+    type: 'button'
+    tooltip: '右にパネル追加'
+    callback: 'pane:split-right'
+    icon: 'columns'
+    iconset: 'fa'
+  }
+  {
+    type: 'button'
+    tooltip: '下にパネル追加'
+    callback: 'pane:split-down'
+    icon: 'columns'
+    iconset: 'fa'
+  }
+# 区切り線
+  {
+    type: "spacer"
+  }
+# ファイルを開く
+  {
+    type: "button"
+    icon: "document"
+    callback: "application:new-file"
+    tooltip: "ファイルを開く"
+    iconset: "ion"
+　　}
+# ファイルを保存
+  {
+    type: "button"
+    icon: "floppy-o"
+    callback: "core:save"
+    tooltip: "ファイルの保存"
+    iconset: "fa"
+　　}
+# 区切り線
+  {
+    type: "spacer"
+  }
+# ブラウザ
+  {
+    type: "button"
+    icon: "chrome"
+    callback: "browser-plus:open"
+    tooltip: "ブラウザ"
+    iconset: "fa"
+    style: {
+      color: "blue"
+      background: "white"
+      border: "2px solid blue"
+    }
+  }
+# markdown-previewプラグインのトグル（Markdownファイルでのみ表示）
+  {
+    type: "button"
+    icon: "markdown"
+    callback: "markdown-preview:toggle"
+    tooltip: "マークダウンプレビュー"
+    hide: "!Markdown"
+  }
+# githubサイトへ遷移
+  {
+    type: "url"
+    icon: "octoface"
+    url: "http://github.com"
+    tooltip: "Github Page"
+  }
+# 検索と置換
+  {
+    type: "button"
+    icon: "search"
+    callback: "find-and-replace:toggle"
+    tooltip: "検索と置換"
+    iconset: "fa"
+  }
+# 開発モード
+  {
+    type: 'button'
+    tooltip: 'デバッグツール'
+    callback: 'window:toggle-dev-tools'
+    icon: 'bug'
+  }
+#
+  {
+    type: "button"
+    icon: "code"
+    callback: "atom-beautify:beautify-editor"
+    tooltip: "テキストの整形"
+    iconset: "fa"
+    mode: "atom-text-editor"
+  }
+#
+  {
+    type: "button"
+    icon: "edit"
+    callback: "todo-show:find-in-workspace"
+    tooltip: "MyTODOの表示"
+    iconset: "fa"
+    mode: "atom-text-editor"
+  }
+]

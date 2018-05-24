@@ -1,0 +1,26 @@
+{
+  "main": [
+    {"title": "SSH環境をリストア", "command": "exe ssh restore"},
+    {"title": "キャンセル", "command": ""}
+  ],
+  "hybrid": [
+    {"title": "最初の準備(corcova/prepair)", "command": "exe hybrid prepair"},
+    {"title": "初期化(cordova/init)", "command": "exe hybrid init"},
+    {"title": "ビルド(cordova)", "command": "exe hybrid cordova %{fullpath} noit"},
+    {"title": "ビルド(electron)", "command": "exe hybrid electron %{fullpath} noit"},
+    {"title": "パッケージ(electron)", "command": "exe hybrid packager %{fullpath} noit"},
+    {"title": "キャンセル", "command": ""}
+  ],
+  "menu": [
+    {"path": "/*/*/*/hybrid", "menu": "hybrid"}
+  ],
+  "path": [
+    {"filter": "/*/*/*/hybrid", "command": "exe hybrid file %{part3} %{part5} %{part7} noit" }
+  ],
+  "modifier": [
+    {"filter": "js", "command": "exe node %{file} %{path}"}
+    ,{"filter": "sh", "command": "%{fullpath}"}
+    ,{"filter": "jse", "command": "%{fullpath}"}
+  ],
+  "automation": false
+}

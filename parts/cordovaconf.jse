@@ -1,0 +1,409 @@
+#!/usr/bin/env node
+/**
+ * cordova ビルド環境を作成します。
+ * @module cordovaconf.jse
+ * @input {file/json} プロジェクト基本仕様設定
+ * @input {file/json} アプリ個別仕様設定
+ * @output {file/xml} config.xml
+ * @output {file/*} 仕様に基づき構成ファイルをコピー
+ */
+var FS=require('fs');
+MAIN={CFG: {}, Source: {}, Master: {}, Plugins: [], Libraries: [], Metas: [], Sjss: [], Scripts: [],
+  Lix: 0,
+/**
+ * 初期処理（メイン）
+ * @return {Void} none
+ * @method
+ */
+  begin: function(){
+    var me=this;
+
+    if(me.prepare()){
+      var id=me.CFG.id; me.config(id); me.html(); me.shell(id);
+    }else{
+      console.log('ERROR 処理できませんでした。');
+    }
+  },
+/**
+ * 入力設定ファイルを準備
+ * @return {Boolean} true/false
+ * @method
+ */
+  prepare: function(){
+    var me=this;
+    var id, ix, out, fn, fd;
+
+    if(!process.argv[2]){console.log('アプリパラメータを指定してください'); return false;}
+    id=process.argv[2];
+
+    me.CFG.id=id;
+    me.CFG.log=process.argv[1].replace(/\.js/, '.log');
+    me.CFG.path=process.argv[1]; me.CFG.pid=process.pid; me.CFG.current=process.cwd();
+    me.CFG.apli=me.filepart(me.CFG.path);
+    fn=me.CFG.current+'/master.cfg'; me.Master=me.getJson(fn);
+    if(!me.Master){console.log("ファイルが見つかりませんfile="+fn); return false;}
+
+    fn=me.CFG.current+'/'+id+'.ccf'; me.Source=me.getJson(fn);
+    if(!me.Source){console.log("ファイルが見つかりませんfile="+fn); return false;}
+
+    for(ix in me.Source){me.Master[ix]=me.Source[ix];}
+
+    if(me.Master.corp.indexOf(' ')>-1){
+      console.log('ERROR corpパラメータに空白を含んではいけません。 ex com.phonegap');
+      return false;
+    }
+    return true;
+  },
+/**
+ * コンフィグファイル（config.xml）を出力
+ * @param  {String} id アプリID
+ * @return {[type]}    [description]
+ * @method
+ */
+  config: function(id){
+    var me=this;
+    var i, j, k, l, out, fn, fd;
+
+    me.Scripts.push("library/base.js");
+    me.Libraries.push({id: "lib", file: "library.sjs"});
+    me.Libraries.push({id: "exe", file: "screen.sjs"});
+
+    console.log("##config.xml start output");
+
+    out='<?xml version="1.0" encoding="utf-8"?>'+"\n";
+    out+='<widget id="'+me.Master.corp+'.'+id+'" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">'+"\n";
+    out+='  <name>'+me.Master.name+'</name>'+"\n";
+
+    for(i in me.Master){
+      switch(i){
+        case "name": case "corp": case "email": break;
+        case "description":
+         out+='  <description>'+me.Master.description+'</description>'+"\n";
+         break;
+        case "author":
+         out+='  <author email="'+me.Master.email+'" href="http://cordova.io">'+me.Master.author
+         +'</author>'+"\n";
+         break;
+        case "content":
+         out+='  <content src="'+me.Master.content+'" />'+"\n";
+         break;
+        case "preference":
+          for(j in me.Master.preference){for(k in me.Master.preference[j]){
+            out+='  <preference name="'+k+'" value="'+me.Master.preference[j][k]+'" />'+"\n";
+          }} break;
+        case "icon":
+          out+='  <icon ';
+          for(j in me.Master.icon){
+            out+=j+'="'+me.Master.icon[j]+'" ';
+          }
+          out+='/>'+"\n"; break;
+        case "access":
+          for(j in me.Master.access){
+            out+='  <access origin="'+me.Master.access[j]+'"/>'+"\n";
+          }
+          break;
+        case "allow-intent":
+          for(j in me.Master['allow-intent']){
+            out+='  <allow-intent href="'+me.Master['allow-intent'][j]+'"/>'+"\n";
+          }
+          break;
+        case "allow-navigation":
+          for(j in me.Master.access){
+            out+='  <allow-navigation href="'+me.Master['allow-navigation'][j]+'"/>'+"\n";
+          }
+          break;
+        case "android":
+          out+='  <platform name="android">'+"\n";
+          for(j in me.Master.android){for(k in me.Master.android[j]){
+            out+='    <'+k+' ';
+            for(l in me.Master.android[j][k]){
+              out+=l+'="'+me.Master.android[j][k][l]+'" ';
+            }
+            out+='/>'+"\n";
+          }}
+          out+='  </platform>'+"\n";
+          break;
+        case "use": me.component(); break;
+        case "screen":
+         me.CFG.width=me.Master.screen.width;
+         me.CFG.height=me.Master.screen.height||Math.floor(me.CFG.width*12/9);
+         break;
+        case "plugins":
+         for(i in me.Master.plugins){me.Plugins.push(me.Master.plugins[i]);}
+         break;
+        case "libraries":
+         for(i in me.Master.libraries){
+           me.Lix++; me.Libraries.push({id: "lb"+me.Lix, file: me.Master.libraries[i]});
+         }
+         break;
+        case "upload":
+         break;
+        default:
+          out+='  <'+i+' ';
+          for(j in me.Master[i]){
+            out+=j+'="'+me.Master[i][j]+'" ';
+          }
+          out+='/>'+"\n";
+      }
+    }
+    out+="</widget>\n";
+
+    me.CFG.width=me.CFG.width||360;
+    me.CFG.height=me.CFG.height||640;
+    me.Metas.push({name: "screenWidth", content: me.CFG.width});
+
+    fn=me.CFG.current+'/config.xml';
+    fd=FS.openSync(fn, 'w'); FS.writeSync(fd, out); FS.closeSync(fd);
+
+  },
+/**
+ * 設定に基づきプラグインを出力
+ * @return {Void} none
+ * @method
+ */
+  component: function(){
+    var me=this; var i;
+
+    for(i in me.Master.use){
+      switch(me.Master.use[i]){
+       case 'file': me.Plugins.push('cordova-plugin-file'); break;
+       case 'tts': me.Plugins.push('cordova-plugin-tts'); break;
+       case 'stt': me.Plugins.push('https://github.com/poiuytrez/SpeechRecognizer'); break;
+       case 'barcode': me.Plugins.push('phonegap-plugin-barcodescanner'); break;
+       case 'ble': me.Plugins.push('cordova-plugin-ble-centeral'); break;
+       case 'nfc': me.Plugins.push('phonegap-nfc'); break;
+       case 'accelo':
+        me.Plugins.push('cordova-plugin-device-motion');
+        me.Plugins.push('cordova-plugin-device-orientation');
+        break;
+       case 'map':
+        me.Lix++;
+        me.Libraries.push({id: "lb"+me.Lix, file: 'map.sjs'});
+        me.Scripts.push(" http://maps.gstatic.com");
+        me.Scripts.push(" http://maps.googleapis.com");
+        me.Scripts.push(" http://mt0.googleapis.com");
+        break;
+      }
+    }
+  },
+/**
+ * ビルド用実行シエルコマンドを編集
+ * @param  {String} id アプリID
+ * @return {Void}     none
+ * @method
+ */
+  shell: function(id){
+    var me=this;
+    var dt={}; dt.id=id; dt.pgid=me.Master.corp+'.'+id; dt.name=me.Master.name;
+    var main=[
+      "echo メインスタート"
+      ,"if [[ -e %{id} ]]; then"
+      ,"  echo 更新モードです。"
+      ,"  mv %{id} backup-%{id}"
+      ,"  echo バックアップを作成しました。"
+      ,"fi"
+      ,"cordova create %{id} %{pgid} %{id}"
+      ,"cd %{id}"
+
+      ,"cordova platform add android"
+//      "cp -r ../tools/plugins/cordova-plugin-console plugins/cordova-plugin-console",
+//      "cp -r ../tools/plugins/cordova-plugin-device plugins/cordova-plugin-device",
+//      "cp -r ../tools/plugins/cordova-plugin-splashscreen plugins/cordova-plugin-splashscreen",
+//      "cp -r ../tools/plugins/cordova-plugin-whitelist plugins/cordova-plugin-whitelist",
+//      "cp ../tools/plugins/android.json plugins/android.json",
+//      "cp ../tools/plugins/fetch.json plugins/fetch.json"
+
+//      "cordova plugin add cordova-plugin-splashscreen",
+//      "cordova plugin add cordova-plugin-console",
+      ,"cordova plugin add cordova-plugin-device"
+
+    ];
+//
+    var folder=[
+      "echo フォルダを作成します。"
+      ,"mkdir www/library"
+      ,"mkdir www/model"
+      ,"mkdir www/view"
+      ,"mkdir www/view/css"
+      ,"mkdir www/view/icon"
+      ,"mkdir www/view/icon/android"
+      ,"mkdir www/view/img"
+      ,"mkdir www/view/screen"
+      ,"mkdir www/view/screen/android"
+    ];
+//
+    copy=[
+      "echo ツール等をコピーします。"
+      ,"cp /cordova/repository/cordova.js www/library/cordova.js"
+      ,"cp /cordova/repository/fontawesome-webfont.ttf www/library/fontawesome-webfont.ttf"
+      ,"cp /cordova/repository/jquery-2.1.1.js www/library/jquery-2.1.1.js"
+      ,"cp /cordova/repository/stratified.js www/library/stratified.js"
+      ,"cp /cordova/library/base.css www/library/base.css"
+      ,"cp /cordova/library/white.jpg www/img/white.jpg"
+      ,"cp /cordova/library/base.js www/library/base.js"
+      ,"cp /cordova/library/colors.js www/library/colors.js"
+      ,"cp /cordova/library/execute.sjs www/library/execute.sjs"
+      ,"cp /cordova/library/font-awesome.js www/library/font-awesome.js"
+      ,"cp /cordova/tools/screen.json www/view/screen.json"
+      ,"cp /cordova/tools/splash.png www/splash.png"
+      ,"cp /cordova/gitignore.txt ./.gitignore"
+      ,"cp /cordova/index.html www/index.html"
+    ];
+//
+    var close=[
+      "echo 最終処理をします。"
+      ,"/cordova/tools/apk_icongen.sh"
+      ,"cordova prepare -d"
+      ,"cd ../"
+      ,"pwd"
+      ,"if [[ -e backup-%{id} ]]; then"
+      ,"  echo wwwソースを展開します。"
+      ,"  rm -rf %{id}/www"
+      ,"  cp -r ./backup-%{id}/www  ./%{id}"
+      ,"  rm -rf ./backup-%{id}"
+      ,"  echo backupを削除しました。"
+      ,"fi"
+    ];
+//
+    var i, out, fn, fd, x;
+    out="#!/bin/bash \n";
+    for(i in main){x=me.parm(main[i], dt); out+=x+"\n";}
+    for(i in folder){x=me.parm(folder[i], dt); out+=x+"\n";}
+    for(i in me.Plugins){
+      x="cordova plugin add "+me.Plugins[i]; out+=x+"\n";
+    }
+    for(i in me.Libraries){
+      x="cp /cordova/library/"+me.Libraries[i].file+' '+'www/library/'+me.Libraries[i].file;
+      out+=x+"\n";
+    }
+    for(i in copy){x=me.parm(copy[i], dt); out+=x+"\n";}
+    for(i in close){x=me.parm(close[i], dt); out+=x+"\n";}
+    out+="read -p '[ENTER]終了' y";
+
+    fn=me.CFG.current+'/config.sh';
+    fd=FS.openSync(fn, 'w'); FS.writeSync(fd, out); FS.closeSync(fd);
+  },
+/**
+ * index.htmlファイルテンプレートを編集
+ * @return {Void} none
+ * @method
+ */
+  html: function(){
+    var me=this; var out='', i;
+    var top=[
+      '<!DOCTYPE html>',
+      '<head>',
+      '<meta  charset="utf-8" />'
+    ];
+
+    var bot=[
+      'exe.open(function(info, rec, me){',
+      '  exe.create("screen");',
+      '  ',
+      '});',
+      '</script>',
+      '</head>'
+    ];
+
+    for(i in top){out+=top[i]+"\n";}
+    out+='<title>'+me.Master.name+'</title>\n';
+
+
+    for(i in me.Metas)
+      {out+='<meta name="'+me.Metas[i].name+'" content="'+me.Metas[i].content+'" />\n';}
+
+    for(i in me.Scripts)
+      {out+='<script type="text/javascript" src="'+me.Scripts[i]+'"></script>\n';}
+
+    out+='<script type="text/sjs">\n';
+    for(i in me.Libraries)
+      {out+='var '+me.Libraries[i].id+'=require("library/'+me.Libraries[i].file+'");\n';}
+
+    for(i in bot){out+=bot[i]+"\n";}
+    out+='<body style="width: '+me.CFG.width+'px; height: '+me.CFG.height+'px;"></body>\n';
+    out+='</html>';
+
+    fn=me.CFG.current+'/index.html';
+    fd=FS.openSync(fn, 'w'); FS.writeSync(fd, out); FS.closeSync(fd);
+  },
+//
+// filepart
+//          (ファイル名)==>拡張子
+/**
+ * ファイル名から拡張子を取り除く
+ * @param  {String} x ファイル名
+ * @return {String}   抽出結果
+ * @method
+ */
+  filepart: function(x){
+    var p=x.lastIndexOf('/'); if(p<0){return x;} p++; return x.substr(p);
+  },
+/**
+ * JSON形式ファイルを読み込み
+ * @param  {String} fn ファイルパス
+ * @return {Object}    JSONオブジェクト/false
+ * @method
+ */
+  getJson: function(fn){
+    try{
+      var rc=this.getFs(fn); if(rc){return JSON.parse(rc);}else{return false;}
+    }catch(e){
+      this.error=e;
+      console.log('ERROR JSON get file='+fn);
+      console.log('ERROR Reason', e);
+      return false;
+    }
+  },
+/**
+ * ファイルを読み込み
+ * @param  {String} fn ファイル名
+ * @return {String}    ファイルの内容/false
+ * @method
+ */
+  getFs: function(fn){
+    this.error='';
+    if(this.isExist(fn)){var d=FS.readFileSync(fn).toString(); return d;}
+    else{this.error='file not found file='+fn; return false;}
+  },
+/**
+ * ファイルの存在を確認
+ * @param  {String} fn 確認対象ファイルパス
+ * @return {Boolean}   true/false
+ * @method
+ */
+  isExist: function(fn){
+    try{return FS.existsSync(fn);}catch(e){return false;}
+  },
+/**
+ * %{key}パラメータを展開する
+ * @param  {String} ln  入力文字列
+ * @param  {Object} dt  変換テーブル
+ * @return {String}     展開後の結果
+ * @method
+ */
+  parm: function(ln, dt, i, j, c, sw, out, cc, key){ // develop parameter
+    var me=this; sw=0; out=''; key='';
+    if(!ln){return '';}
+    for(i=0; i<ln.length; i++){
+      c=ln.substr(i, 1); cc=ln.substr(i, 2);
+      switch(sw){
+       case 0:
+        switch(cc){
+          case '%{': sw=1; i++; key=''; break;
+          default: out+=c; break;
+        } break;
+       case 1:
+        if(c=='}'){
+          if(dt[key]!==undefined){out+=dt[key];}
+          sw=0;
+        }else{
+          key+=c;
+        } break;
+      }
+    }
+    return out;
+  },
+//
+  finish: function(){}
+};
+MAIN.begin();

@@ -1,0 +1,22 @@
+#!/bin/bash
+#> Helps /usr/binにあるモジュールからヘルプ用コメントを抜き出し表示します。
+#>   @Param {String} $1 /usr/binにあるシェルファイル
+filename=/usr/bin/$1
+op="all"
+##
+  while read line; do
+    if [[ ${line} != '' ]]; then
+      mk=$(echo ${line} | cut -d " " -f 1)
+      if [[ ${mk} = '#>' ]]; then
+        if [[ ${op} != 'all' ]]; then
+          test=$(echo ${line} | grep @)
+          if [[ ! ${test} ]]; then
+            echo ${line}
+          fi
+        else
+          echo ${line}
+        fi
+      fi
+    fi
+  done < ${filename}
+##

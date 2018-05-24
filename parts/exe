@@ -1,0 +1,13 @@
+#!/bin/bash
+#> @module exe our-ide起動用インターフェイス
+#> @desc ドッカーを起動します。
+##
+#> 
+  holder=$1
+  if [[ ! -e $holder ]]; then
+    echo "### エラー　フォルダがありません(${holder}) ###"
+    exit 1
+  fi
+  cd $holder
+  ./docker.sh $2 $3 $4 $5 $6 $7 $8
+##

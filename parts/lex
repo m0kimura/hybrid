@@ -1,0 +1,172 @@
+#!/bin/bash
+#> @module lex cordova 操作ライブラリ
+#> @desc 内蔵されたシェルスクリプトで直接的、間接的に（docker.shから）呼び出される
+cmd=$1
+holder=$2
+module=$3
+null=
+function funcUpload () {
+  cmd=$1
+#> remote カレントディレクトリからデバイスにインストール
+##
+  if [[ $cmd = 'remote' ]]; then
+    if  [[ ! -e config.xml ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      exit
+    fi
+    adb install -r ./platforms/android/app/build/outputs/apk/debug/app-debug.apk
+    echo "### リモートアップロードしました。 ###"
+#> usb カレントディレクトリからデバイスにインストール
+##
+  elif [[ $cmd = 'usb' ]]; then
+    if  [[ ! -e config.xml ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      exit
+    fi
+    adb install ./platforms/android/app/build/outputs/apk/debug/app-debug.apk
+    echo "### USBアップロードしました。 ###"
+#> dropbox カレントディレクトリからドロップボックスで同期（Dropbox/apliフォルダにコピーします。）
+##
+  elif [[ $cmd = 'dropbox' ]]; then
+    if  [[ ! -e config.xml ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      exit
+    fi
+    module=${PWD##*/}
+    cp ./platforms/android/app/build/outputs/apk/debug/app-debug.apk $HOME/Dropbox/apli/${module}.apk
+    if [[ ! -e ../../delivery ]]; then
+      mkdir ../../delivery
+    fi
+    cp ./platforms/android/app/build/outputs/apk/debug/app-debug.apk ../../delivery/${module}.apk
+    echo "### DROPBOXアップロードしました。 ###"
+  fi
+}
+##
+#> cordova カレントディレクトリからCordovaをビルドする
+  if [[ $cmd = 'cordova' ]]; then
+    if  [[ ! -e config.xml ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      ls
+      exit
+    fi
+    upload=$(jq -r '.upload' < '../master.cfg')
+    cordova build
+    funcUpload ${upload}
+##
+#> electron カレントディレクトリからElectronをビルドする
+  elif [[ $cmd = 'electron' ]]; then
+    electron .
+#> prepair Cordova設定ファイルを準備する module
+#>   @Parameter $2 コルドバモジュール/prompt
+  elif [[ $cmd = 'prepair' ]]; then
+    holder=${PWD##*/}
+    if  [[ $holder != "hybrid" ]]; then
+      echo "### ERROR path is invalid ###"
+      exit
+    fi
+    if  [[ $2 = "$null" ]]; then
+      echo "### ERROR module is not specified ###"
+      exit
+    fi
+    if [[ $2 = "prompt" ]]; then
+      read -p "モジュール名を入れてください" module
+    else
+      module=$2
+    fi
+    if [[ ! -e master.cfg ]]; then
+      cp /usr/src/master.cfg master.cfg
+    fi
+    cp ./master.cfg ${module}.ccf
+#> init Cordovaプロジェクトを初期化する module
+#>   @Parameter $2 コルドバモジュール/prompt
+  elif [[ $cmd = 'init' ]]; then
+    holder=${PWD##*/}
+    if  [[ $holder != "hybrid" ]]; then
+      echo "### ERROR path is invalid ###"
+      exit
+    fi
+    if  [[ $2 = "$null" ]]; then
+      echo "### ERROR module is not specified ###"
+      exit
+    fi
+    if [[ $2 = "prompt" ]]; then
+      read -p "モジュール名を入れてください" module
+    else
+      module=$2
+    fi
+    cp /usr/src/config.sh config.sh
+    cordovaconf.jse $module
+    chmod +x ./config.sh
+    ./config.sh
+##
+#> icongen カレントディレクトリからアイコンバラエティを作成
+  elif [[ $cmd = 'icongen' ]]; then
+    if  [[ ! -e config.xml ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      exit
+    fi
+    if  [[ ! -e ./www/splash.png ]]; then
+      echo "### ERROR www/splash.png not found ###"
+      exit
+    fi
+    convert www/splash.png -geometry 128x128 www/view/icon.png
+    convert www/splash.png -geometry 128x128 www/view/icon/android/icon128.png
+    convert www/splash.png -geometry 96x96 www/view/icon/android/icon96.png
+    convert www/splash.png -geometry 72x72 www/view/icon/android/icon72.png
+    convert www/splash.png -geometry 48x48 www/view/icon/android/icon48.png
+    convert www/splash.png -geometry 36x36 www/view/icon/android/icon36.png
+
+    convert www/splash.png -geometry 720x720 -background "#dedede" -mattecolor "#dedede" -frame 280x0 www/view/screen/android/screen1280l.png
+    convert www/splash.png -geometry 720x720 -background "#dedede" -mattecolor "#dedede" -frame 0x280 www/view/screen/android/screen1280p.png
+    convert www/splash.png -geometry 480x480 -background "#dedede" -mattecolor "#dedede" -frame 160x0 www/view/screen/android/screen800l.png
+    convert www/splash.png -geometry 480x480 -background "#dedede" -mattecolor "#dedede" -frame 0x160 www/view/screen/android/screen800p.png
+    convert www/splash.png -geometry 320x320 -background "#dedede" -mattecolor "#dedede" -frame 80x0 www/view/screen/android/screen480l.png
+    convert www/splash.png -geometry 320x320 -background "#dedede" -mattecolor "#dedede" -frame 0x80 www/view/screen/android/screen480p.png
+    convert www/splash.png -geometry 200x200 -background "#dedede" -mattecolor "#dedede" -frame 60x0 www/view/screen/android/screen320l.png
+    convert www/splash.png -geometry 200x200 -background "#dedede" -mattecolor "#dedede" -frame 0x60 www/view/screen/android/screen320p.png
+##
+#> packager カレントディレクトリからelectronアプリをビルドして、zipファイルにパッケージする
+  elif [[ $cmd = 'packager' ]]; then
+    if  [[ ! -e main.js ]]; then
+      echo "### ERROR カレントパスが正しくありません。 path=$(pwd) ###"
+      exit
+    fi
+    name=$(cd ../ && echo ${PWD##*/})
+    if [[ ! -e ../../../delivery ]]; then
+      mkdir ../../../delivery
+    fi
+    electron-packager . ${name} --platform=win32,linux,darwin --arch=x64 \
+      --electron-version=1.8.4 --out ../../../delivery
+    cd ../../../delivery
+    zip -r mac-${name} ${name}-darwin-x64
+    zip -r linux-${name} ${name}-linux-x64
+    zip -r win-${name} ${name}-win32-x64
+    rm -rf ${name}-*
+  ##
+  #> setup Atom環境をセットアップします。
+  elif [[ $cmd = 'setup' ]]; then
+    cp /usr/src/our-ide.json ~/.atom/our-ide.json
+    cp toolbar.cson ~/.atom/toolbar.cson
+    git clone https://github.com/m0kimura/our-ide.git ~/.atom/packages/our-ide
+    apm install --packages-file /usr/src/package.list
+    if [[ ! -e ~/bin ]]; then
+      mkdir ~/bin
+    fi
+    cp /usr/src/exe ~/bin/exe
+    echo "### ログインし直しが必要です。 ###"
+  else
+    ##
+    #> その他、何も指定しない時はHelpを表示する
+    funcUpload $cmd
+    echo "### HELP ###"
+    echo "1. lex prepair {module} でモジュール用の{module}.ccfを準備します。"
+    echo "2. master.cfgに省略時のアプリ仕様を設定することができます。"
+    echo "3. {module}.ccfにアプリの仕様を記述してください。"
+    echo "4. lex init {module} でCordovaモジュールの初期化をします。"
+    echo "5. index.htmlやJavaScriptを準備してください。"
+    echo "6. lex build でビルドします。"
+    echo '7. master.cfgに「"upload":"usb/dropbox/remote"」を指定するとビルド後にアップロードされます。'
+    echo "*. Helps lexでlexコマンドの使い方がわかります。"
+    echo "### end ###"
+  fi
+##
